@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Media Fetcher</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #1a1a1a;
+      --s1:      #222222;
+      --s2:      #2a2a2a;
+      --s3:      #333333;
+      --line:    #2e2e2e;
+      --acc:     #BAFC04;
+      --acc-d:   #9dd300;
+      --text:    #d8d8d8;
+      --muted:   #6a6a6a;
+      --ok:      #4ade80;
+      --err:     #f87171;
+      --r:       4px;
+    }
+
+    html, body {
+      height: 100%; background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      overflow: hidden;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      padding: 16px 14px 14px;
+      gap: 12px;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    .header-left { display: flex; align-items: center; gap: 8px; }
+    .header-pip {
+      width: 7px; height: 7px;
+      background: var(--acc);
+      border-radius: 50%;
+    }
+    .header-title {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      color: var(--text);
+    }
+    .header-tag {
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+    }
+
+    /* Field group */
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .label {
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* Inputs */
+    input[type="text"], select {
+      width: 100%;
+      background: var(--s1);
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      padding: 7px 9px;
+      outline: none;
+      transition: border-color 0.12s;
+      appearance: none;
+    }
+    input[type="text"]:focus,
+    select:focus { border-color: var(--acc); }
+    input::placeholder { color: var(--muted); }
+
+    select {
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%236a6a6a'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 9px center;
+      padding-right: 24px;
+    }
+    select option { background: #222; }
+
+    /* Save-to row */
+    .folder-row { display: flex; gap: 6px; }
+    .folder-row input { flex: 1; }
+    .browse {
+      background: var(--s1);
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      color: var(--muted);
+      font-size: 14px;
+      width: 30px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: border-color 0.12s, color 0.12s;
+    }
+    .browse:hover { border-color: var(--acc); color: var(--acc); }
+
+    /* Divider */
+    hr { border: none; border-top: 1px solid var(--line); }
+
+    /* Download button */
+    #download-btn {
+      width: 100%;
+      height: 36px;
+      background: var(--acc);
+      color: #0e0e0e;
+      border: none;
+      border-radius: var(--r);
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      transition: background 0.12s, transform 0.1s;
+      flex-shrink: 0;
+    }
+    #download-btn:hover:not(:disabled) { background: var(--acc-d); }
+    #download-btn:active:not(:disabled) { transform: scale(0.99); }
+    #download-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+
+    /* Cancel */
+    #cancel-btn {
+      width: 100%;
+      height: 28px;
+      background: transparent;
+      border: 1px solid var(--s3);
+      border-radius: var(--r);
+      color: var(--muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      cursor: pointer;
+      display: none;
+      transition: border-color 0.12s, color 0.12s;
+    }
+    #cancel-btn:hover { border-color: var(--err); color: var(--err); }
+
+    /* Progress */
+    #progress-wrap { display: none; flex-direction: column; gap: 6px; flex-shrink: 0; }
+    .progress-row { display: flex; justify-content: space-between; align-items: center; }
+    #pct { font-size: 10px; color: var(--acc); font-weight: 500; }
+    #eta { font-size: 10px; color: var(--muted); }
+    .track {
+      height: 2px;
+      background: var(--s2);
+      border-radius: 1px;
+      overflow: hidden;
+    }
+    #bar {
+      height: 100%;
+      width: 0%;
+      background: var(--acc);
+      border-radius: 1px;
+      transition: width 0.3s ease;
+    }
+
+    /* Status */
+    .status-row { display: flex; align-items: center; gap: 7px; }
+    .dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--s3);
+      flex-shrink: 0;
+      transition: background 0.2s;
+    }
+    .dot.info { background: var(--acc); animation: pulse 1.4s infinite; }
+    .dot.ok   { background: var(--ok); }
+    .dot.err  { background: var(--err); }
+    .dot.warn { background: #fbbf24; }
+    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.25} }
+    #status {
+      font-size: 10px;
+      color: var(--muted);
+      transition: color 0.15s;
+    }
+    #status.info { color: var(--acc); }
+    #status.ok   { color: var(--ok); }
+    #status.err  { color: var(--err); }
+    #status.warn { color: #fbbf24; }
+
+    /* Log */
+    .log-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .log-clear {
+      font-size: 9px;
+      color: var(--muted);
+      cursor: pointer;
+      letter-spacing: 0.06em;
+    }
+    .log-clear:hover { color: var(--text); }
+    #log {
+      flex: 1;
+      min-height: 0;
+      background: var(--s1);
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      padding: 8px 10px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 9.5px;
+      color: var(--muted);
+      white-space: pre-wrap;
+      word-break: break-all;
+      line-height: 1.65;
+    }
+    #log::-webkit-scrollbar { width: 3px; }
+    #log::-webkit-scrollbar-thumb { background: var(--s3); border-radius: 2px; }
+    #log .g { color: var(--ok); }
+    #log .a { color: var(--acc); }
+    #log .e { color: var(--err); }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="header-pip"></div>
+      <span class="header-title">Media Fetcher</span>
+    </div>
+    <span class="header-tag">yt-dlp</span>
+  </div>
+
+  <!-- URL -->
+  <div class="field">
+    <span class="label">URL</span>
+    <input type="text" id="url-input" placeholder="Paste YouTube / Instagram / X link…" autocomplete="off" spellcheck="false"/>
+  </div>
+
+  <!-- Format -->
+  <div class="field">
+    <span class="label">Quality</span>
+    <select id="format-sel">
+      <option value="best">Best (MP4)</option>
+      <option value="1080">1080p (MP4)</option>
+      <option value="720">720p  (MP4)</option>
+      <option value="480">480p  (MP4)</option>
+      <option value="bestaudio">Audio only (MP3)</option>
+    </select>
+  </div>
+
+  <!-- Save to -->
+  <div class="field">
+    <span class="label">Save to</span>
+    <div class="folder-row">
+      <input type="text" id="out-dir" spellcheck="false"/>
+      <div class="browse" id="browse-btn" title="Browse">⋯</div>
+    </div>
+  </div>
+
+  <hr/>
+
+  <!-- Download -->
+  <button id="download-btn">↓ DOWNLOAD &amp; IMPORT</button>
+  <button id="cancel-btn">Cancel</button>
+
+  <!-- Progress -->
+  <div id="progress-wrap">
+    <div class="progress-row">
+      <span id="pct">0%</span>
+      <span id="eta"></span>
+    </div>
+    <div class="track"><div id="bar"></div></div>
+  </div>
+
+  <!-- Status -->
+  <div class="status-row">
+    <div class="dot" id="dot"></div>
+    <span id="status">Ready</span>
+  </div>
+
+  <!-- Log -->
+  <div class="field" style="flex:1;min-height:0;">
+    <div class="log-header">
+      <span class="label">Log</span>
+      <span class="log-clear" id="log-clear">clear</span>
+    </div>
+    <div id="log"></div>
+  </div>
+
+  <script src="js/CSInterface.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    document.getElementById("log-clear").onclick = () => { document.getElementById("log").textContent = ""; };
+  </script>
+</body>
+</html>
