@@ -1,5 +1,7 @@
 # 🎬 Media Fetcher — Premiere Pro Extension
 
+<img width="482" height="637" alt="Image" src="https://github.com/user-attachments/assets/80d7b18b-05aa-4da2-ad41-564e1c43dda4" />
+
 Download videos from **YouTube, Instagram & X/Twitter** inside Premiere Pro and auto-import them to your project bin.
 
 ---
